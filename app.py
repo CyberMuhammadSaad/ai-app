@@ -1,54 +1,67 @@
 import streamlit as st
+import numpy as np
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="AI Chat System", layout="wide")
-
-# ---------------- MEMORY ----------------
-if "chat" not in st.session_state:
-    st.session_state.chat = []
-
-# ---------------- SIMPLE AI ----------------
-def bot_response(text):
-    text = text.lower()
-
-    if "hello" in text or "hi" in text:
-        return "Hello! I am your AI assistant."
-
-    if "name" in text:
-        return "I am a simple chatbot built using Streamlit."
-
-    if "study" in text:
-        return "Study daily in small chunks. Consistency beats pressure."
-
-    if "python" in text:
-        return "Python is used for AI, web apps, automation, and data science."
-
-    return "I understand. Tell me more."
+st.set_page_config(page_title="AI Property Price Predictor", layout="wide")
 
 # ---------------- TITLE ----------------
-st.title("🤖 AI Chat System")
+st.title("🏠 AI Property Price Prediction System")
+st.caption("Simple ML model using Linear Regression")
 
-# ---------------- SHOW CHAT ----------------
-for msg in st.session_state.chat:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+st.divider()
+
+# ---------------- DATA (ML MODEL) ----------------
+# Training data (size in sq ft → price in Lakh PKR)
+X = np.array([[500], [800], [1000], [1200], [1500], [1800]])
+y = np.array([15, 28, 40, 55, 70, 90])
+
+model = LinearRegression()
+model.fit(X, y)
 
 # ---------------- INPUT ----------------
-user_input = st.chat_input("Type your message...")
+size = st.number_input("Enter House Size (sq ft)", min_value=100, step=50)
 
-if user_input:
+region = st.selectbox("Select Market Type", ["Low Demand", "Normal", "High Demand"])
 
-    # user message
-    st.session_state.chat.append({
-        "role": "user",
-        "content": user_input
-    })
+property_type = st.selectbox("Property Type", ["Apartment", "House", "Villa", "Commercial"])
 
-    # bot response
-    reply = bot_response(user_input)
+# market adjustment
+def market_factor(region):
+    if region == "Low Demand":
+        return 0.85
+    elif region == "Normal":
+        return 1.0
+    else:
+        return 1.25
 
-    st.session_state.chat.append({
-        "role": "assistant",
-        "content": reply
-    })
+# ---------------- PREDICTION ----------------
+if st.button("Predict Price"):
 
-    st.rerun()
+    base_price = model.predict([[size]])[0]
+    final_price = base_price * market_factor(region)
+
+    st.success("Prediction Completed")
+
+    # RESULT
+    st.markdown("## 💰 Estimated Price")
+    st.markdown(f"### {final_price:.2f} Lakh PKR")
+
+    st.write("### Breakdown")
+    st.write(f"- Property Type: {property_type}")
+    st.write(f"- Size: {size} sq ft")
+    st.write(f"- Market: {region}")
+    st.write(f"- Base Price: {base_price:.2f} Lakh PKR")
+
+    # ---------------- GRAPH ----------------
+    st.markdown("## 📊 Model Visualization")
+
+    fig, ax = plt.subplots()
+    ax.plot(X, y, marker="o", label="Training Data")
+    ax.scatter(size, final_price, color="red", label="Your Property")
+
+    ax.set_xlabel("Size (sq ft)")
+    ax.set_ylabel("Price (Lakh PKR)")
+    ax.legend()
+
+    st.pyplot(fig)
